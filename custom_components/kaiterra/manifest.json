@@ -1,0 +1,12 @@
+{
+  "domain": "kaiterra",
+  "name": "Kaiterra",
+  "documentation": "https://github.com/Michsior14/ha-kaiterra",
+  "dependencies": [],
+  "codeowners": [
+    "@Michsior14"
+  ],
+  "requirements": [
+    "kaiterra-async-client>=0.0.2"
+  ]
+}

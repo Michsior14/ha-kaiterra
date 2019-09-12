@@ -1,0 +1,6 @@
+sensor:
+  - platform: kaiterra
+    api_key: xxxxx
+    devices:
+      - device_id: xxxxx
+        type: laseregg 
