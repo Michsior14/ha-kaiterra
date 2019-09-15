@@ -68,6 +68,7 @@ SENSORS = {
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=30)
 
 CONF_AQI_STANDARD = 'aqi_standard'
+CONF_PREFERRED_UNITS = 'preferred_units'
 
 KAITERRA_DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_DEVICE_ID): cv.string,
@@ -80,6 +81,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_API_KEY): cv.string,
         vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [KAITERRA_DEVICE_SCHEMA]),
         vol.Optional(CONF_AQI_STANDARD, default='us'): vol.In(['us', 'cn', 'in']),
+        vol.Optional(CONF_PREFERRED_UNITS, default=[]): vol.All(cv.ensure_list, [vol.In(['x', '%', 'C', 'F', 'mg/m³', 'µg/m³', 'ppm', 'ppb'])]),
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.time_period,
     }
 )
@@ -87,23 +89,25 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the air_quality kaiterra sensor."""
-    from kaiterra_async_client import KaiterraAPIClient, AQIStandard
+    from kaiterra_async_client import KaiterraAPIClient, AQIStandard, Units
     
     api_key = config.get(CONF_API_KEY)
     aqi_standard = config.get(CONF_AQI_STANDARD)
     scan_interval = config.get(CONF_SCAN_INTERVAL)
     devices = config.get(CONF_DEVICES)
+    units = [Units.from_str(unit) for unit in config.get(CONF_PREFERRED_UNITS)]
 
-    api = KaiterraAPIClient(aiohttp_client.async_get_clientsession(hass), api_key=api_key, aqi_standard=AQIStandard.from_str(aqi_standard))
+    api = KaiterraAPIClient(aiohttp_client.async_get_clientsession(hass), api_key=api_key, aqi_standard=AQIStandard.from_str(aqi_standard), preferred_units=units)
     data = KaiterraData(api, devices, aqi_standard, scan_interval)
 
     await data.async_update()
 
     sensors = []
     for device in devices:
+        id, name, genre = device.get(CONF_DEVICE_ID), device.get(CONF_NAME), device.get(CONF_TYPE)
         for kind, sensor in SENSORS.items():
             sensors.append(
-                KaiterraSensor(data, f"{device.get(CONF_NAME) if device.get(CONF_NAME) else device.get(CONF_TYPE)} {sensor['name']}", device.get(CONF_DEVICE_ID), kind, sensor['icon'])
+                KaiterraSensor(data, f"{name if name else genre} {sensor['name']}", id, kind, sensor['icon'])
             )
 
     async_add_entities(sensors, True)
@@ -171,7 +175,12 @@ class KaiterraSensor(Entity):
                 self._icon = level.get('icon')
         else:
             self._state = sensor.get('value')
-            self._unit = sensor.get('units').value if sensor.get('units') else None
+            
+            if sensor.get('units'):
+                value = sensor.get('units').value
+                self._unit = '°' + value if value in ['F', 'C'] else value
+            else:
+                self._unit =  None
 
 class KaiterraData:
     """Get data from Kaiterra API."""
@@ -215,13 +224,13 @@ class KaiterraData:
                         continue
                     
                     point = points[0]
-                    device[sensor]['value'] = point['value']
+                    device[sensor]['value'] = point.get('value')
 
                     if 'aqi' not in point:
                         continue
 
-                    device[sensor]['aqi'] = point['aqi']
-                    if not aqi or aqi < point['aqi']:
+                    device[sensor]['aqi'] = point.get('aqi')
+                    if not aqi or aqi < point.get('aqi'):
                         aqi = point['aqi']
                         main_pollutant = SENSORS[sensor]['name']
 
