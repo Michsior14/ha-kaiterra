@@ -58,6 +58,7 @@ SENSORS = {
     "rpm25c": {"name": "PM2.5", "icon": "mdi:weather-windy"},
     "rpm10c": {"name": "PM10", "icon": "mdi:weather-windy"},
     "rtvoc": {"name": "TVOC", "icon": "mdi:weather-windy"},
+    "rco2": {"name": "CO2", "icon": "mdi:weather-windy"},
     "rtemp": {"name": "Temperature", "icon": "mdi:temperature-celsius"},
     "rhumid": {"name": "Humidity", "icon": "mdi:water"},
     "aqi": {"name": "Air Quality Index", "icon": "mdi:chart-line"},
