@@ -1,3 +1,5 @@
+# THE INTEGRATION HAS BEEN OFFICALY ADDED TO [HOME ASSISTANT](https://www.home-assistant.io/integrations/kaiterra)
+
 # Home Assistant kaiterra sensors component
 Home Assistant custom component for the Kaiterra's devices
 
